@@ -16,7 +16,9 @@ export const formatShiftsForWhatsapp = (
   }
 
   const isLoft = jobType === 'weekly_fixed';
-  const label = periodLabel || (isLoft ? 'settimana' : 'mese');
+  const currentMonth = new Date().toLocaleDateString('it-IT', { month: 'long' });
+  const currentMonthCap = currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1);
+  const label = periodLabel || (isLoft ? 'questa settimana' : `mese di ${currentMonthCap}`);
 
   if (isLoft) {
     // Formattazione per il LOFT
@@ -24,25 +26,20 @@ export const formatShiftsForWhatsapp = (
     const details = targetShifts
       .map((s) => {
         const typeLabel = s.shiftType === 'half' ? 'Mezzo Turno (50€)' : 'Turno Pieno (70€)';
-        const dateFormatted = new Date(s.date).toLocaleDateString('it-IT', {
-          weekday: 'short',
-          day: '2-digit',
-          month: '2-digit',
-        });
+        const [y, m, d] = s.date.split('-');
+        const dateFormatted = `${d}/${m}`;
         return `• ${dateFormatted}: ${typeLabel}`;
       })
       .join('\n');
 
-    return `Ciao! Ecco il resoconto dei turni al *LOFT* per questa ${label}:\n\n${details}\n\n------------------------------\n*Totale Turni:* ${targetShifts.length}\n*Totale da saldare:* ${totalEarnings.toFixed(2)} €`;
+    return `Ciao! Ecco il resoconto dei turni al *LOFT* per ${label}:\n\n${details}\n\n------------------------------\n*Totale Turni:* ${targetShifts.length}\n*Totale da saldare:* ${totalEarnings.toFixed(2)} €`;
   } else {
     // Formattazione per Chiama Cucina
     let totalHoursSum = 0;
     const details = targetShifts
       .map((s) => {
-        const dateFormatted = new Date(s.date).toLocaleDateString('it-IT', {
-          day: '2-digit',
-          month: '2-digit',
-        });
+        const [y, m, d] = s.date.split('-');
+        const dateFormatted = `${d}/${m}`;
         let hours = 0;
         if (s.endTime) {
           const startMs = new Date(s.startTime).getTime();
