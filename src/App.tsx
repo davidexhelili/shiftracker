@@ -259,7 +259,7 @@ export function App() {
                 >
                   <div>
                     <span className="font-semibold block text-white">
-                      {shift.jobType === 'weekly_fixed' ? 'LOFT' : 'Lavoro Orario'}
+                      {shift.jobType === 'weekly_fixed' ? 'LOFT' : 'Chiama Cucina'}
                     </span>
                     <span className="text-xs text-slate-400">
                       {shift.date} {shift.breakDuration ? `• Pausa: ${shift.breakDuration}m` : ''}
