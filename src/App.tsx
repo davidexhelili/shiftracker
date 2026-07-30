@@ -5,6 +5,7 @@ import { Dashboard } from './components/Dashboard';
 import { ArchiveHistory } from './components/ArchiveHistory';
 import { ShiftModal } from './components/ShiftModal';
 import { SettingsModal } from './components/SettingsModal';
+import { JobShiftsModal } from './components/JobShiftsModal';
 import type { JobType, Shift, ArchivedSummary, EmployerContacts } from './types';
 import {
   getStoredShifts,
@@ -33,6 +34,14 @@ export function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isJobShiftsOpen, setIsJobShiftsOpen] = useState(false);
+  const [jobShiftsTab, setJobShiftsTab] = useState<JobType>('weekly_fixed');
+
+  // Apertura modale consultazione turni per lavoro
+  const handleOpenJobShifts = (jobType: JobType = 'weekly_fixed') => {
+    setJobShiftsTab(jobType);
+    setIsJobShiftsOpen(true);
+  };
 
   // Caricamento dati da IndexedDB all'avvio
   useEffect(() => {
@@ -228,6 +237,7 @@ export function App() {
           shifts={shifts}
           onArchiveJob={handleArchiveJob}
           onSendWhatsapp={handleSendWhatsappCurrent}
+          onOpenJobShifts={handleOpenJobShifts}
         />
 
         {/* Componente ClockIn */}
@@ -247,12 +257,21 @@ export function App() {
           </button>
         </div>
 
-        {/* Lista dei turni registrati */}
+        {/* Lista degli ultimi 3 turni registrati */}
         {shifts.length > 0 && (
           <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 shadow-lg">
-            <h3 className="font-bold text-lg mb-3 text-slate-200">Ultimi Turni Registrati</h3>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-bold text-base text-slate-200">Ultimi Turni Registrati</h3>
+              <button
+                onClick={() => handleOpenJobShifts()}
+                className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold transition-colors"
+              >
+                Vedi Tutti ➔
+              </button>
+            </div>
+
             <div className="space-y-2">
-              {shifts.map((shift) => (
+              {shifts.slice(0, 3).map((shift) => (
                 <div
                   key={shift.id}
                   className="bg-slate-900 p-3 rounded-xl flex justify-between items-center text-sm border border-slate-700/50"
@@ -302,6 +321,15 @@ export function App() {
                 </div>
               ))}
             </div>
+
+            {shifts.length > 3 && (
+              <button
+                onClick={() => handleOpenJobShifts()}
+                className="w-full mt-3 py-2 bg-slate-900 hover:bg-slate-700/60 border border-slate-700 text-xs font-semibold text-emerald-400 rounded-xl transition-colors text-center"
+              >
+                Vedi Tutti i Turni ({shifts.length}) 📋
+              </button>
+            )}
           </div>
         )}
 
@@ -312,6 +340,16 @@ export function App() {
           onSendWhatsappArchived={handleSendWhatsappArchived}
         />
       </main>
+
+      {/* Modale Consultazione Turni Divisi per Lavoro */}
+      <JobShiftsModal
+        isOpen={isJobShiftsOpen}
+        onClose={() => setIsJobShiftsOpen(false)}
+        shifts={shifts}
+        initialJobType={jobShiftsTab}
+        onEditShift={handleEditShift}
+        onDeleteShift={handleDeleteShift}
+      />
 
       {/* Modale Inserimento / Modifica Turno */}
       <ShiftModal

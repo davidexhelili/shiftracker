@@ -6,12 +6,14 @@ interface DashboardProps {
   shifts: Shift[];
   onArchiveJob?: (jobType: JobType, defaultLabel: string) => void;
   onSendWhatsapp?: (jobType: JobType) => void;
+  onOpenJobShifts?: (jobType: JobType) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
   shifts,
   onArchiveJob,
   onSendWhatsapp,
+  onOpenJobShifts,
 }) => {
   // Calcolo ore da uno shift
   const getShiftHours = (shift: Shift): number => {
@@ -86,6 +88,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           <div className="space-y-2">
+            {onOpenJobShifts && (
+              <button
+                onClick={() => onOpenJobShifts('weekly_fixed')}
+                className="w-full text-xs font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 py-1.5 rounded-xl border border-slate-600 transition-colors flex items-center justify-center gap-1"
+              >
+                📋 Turni LOFT
+              </button>
+            )}
             {loftShifts.length > 0 && onSendWhatsapp && (
               <button
                 onClick={() => onSendWhatsapp('weekly_fixed')}
@@ -97,7 +107,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {loftShifts.length > 0 && onArchiveJob && (
               <button
                 onClick={() => handleArchiveClick('weekly_fixed', 'LOFT')}
-                className="w-full text-xs font-semibold bg-slate-700 hover:bg-slate-600 text-slate-300 py-1.5 rounded-xl border border-slate-600 transition-colors"
+                className="w-full text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-400 py-1 rounded-xl border border-slate-700 transition-colors"
               >
                 📦 Reset Settimanale
               </button>
@@ -121,6 +131,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           <div className="space-y-2">
+            {onOpenJobShifts && (
+              <button
+                onClick={() => onOpenJobShifts('monthly_hourly')}
+                className="w-full text-xs font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 py-1.5 rounded-xl border border-slate-600 transition-colors flex items-center justify-center gap-1"
+              >
+                📋 Turni Chiama Cucina
+              </button>
+            )}
             {hourlyShifts.length > 0 && onSendWhatsapp && (
               <button
                 onClick={() => onSendWhatsapp('monthly_hourly')}
@@ -132,7 +150,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {hourlyShifts.length > 0 && onArchiveJob && (
               <button
                 onClick={() => handleArchiveClick('monthly_hourly', 'Chiama Cucina')}
-                className="w-full text-xs font-semibold bg-slate-700 hover:bg-slate-600 text-slate-300 py-1.5 rounded-xl border border-slate-600 transition-colors"
+                className="w-full text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-400 py-1 rounded-xl border border-slate-700 transition-colors"
               >
                 📦 Reset Mensile
               </button>
