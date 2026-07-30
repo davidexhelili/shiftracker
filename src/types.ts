@@ -8,6 +8,7 @@ export const KITCHEN_ACTIVITIES = [
   'Matrimonio',
   'Evento',
   'Aiuto generale',
+  'Consegna',
 ] as const;
 
 export type KitchenActivity = (typeof KITCHEN_ACTIVITIES)[number];
