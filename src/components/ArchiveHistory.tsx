@@ -13,8 +13,6 @@ export const ArchiveHistory: React.FC<ArchiveHistoryProps> = ({
   onDeleteArchive,
   onSendWhatsappArchived,
 }) => {
-  if (archived.length === 0) return null;
-
   return (
     <div className="bg-slate-800 border border-slate-700 p-4 rounded-2xl shadow-lg max-w-md mx-auto my-4">
       <h3 className="font-bold text-lg mb-3 text-slate-200 flex items-center justify-between">
@@ -24,7 +22,12 @@ export const ArchiveHistory: React.FC<ArchiveHistoryProps> = ({
         </span>
       </h3>
 
-      <div className="space-y-3">
+      {archived.length === 0 ? (
+        <div className="text-center py-4 text-xs text-slate-400 border border-dashed border-slate-700/80 rounded-xl p-3">
+          Nessun periodo archiviato al momento. Quando esegui un <strong>Reset Settimanale</strong> o <strong>Reset Mensile</strong>, i resoconti completi compaiono qui.
+        </div>
+      ) : (
+        <div className="space-y-3">
         {archived.map((item) => (
           <div
             key={item.id}
@@ -79,6 +82,7 @@ export const ArchiveHistory: React.FC<ArchiveHistoryProps> = ({
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 };
