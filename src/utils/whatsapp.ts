@@ -54,7 +54,8 @@ export const formatShiftsForWhatsapp = (
           hours = mins / 60;
         }
         totalHoursSum += hours;
-        return `• ${dateFormatted}: ${hours.toFixed(1)}h (${s.totalEarnings.toFixed(2)}€)`;
+        const activitiesStr = s.activities && s.activities.length > 0 ? ` [${s.activities.join(', ')}]` : '';
+        return `• ${dateFormatted}: ${hours.toFixed(1)}h (${s.totalEarnings.toFixed(2)}€)${activitiesStr}`;
       })
       .join('\n');
 

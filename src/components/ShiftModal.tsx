@@ -1,6 +1,6 @@
 // src/components/ShiftModal.tsx
 import React, { useState, useEffect } from 'react';
-import type { JobType, Shift } from '../types';
+import { KITCHEN_ACTIVITIES, type JobType, type Shift } from '../types';
 
 interface ShiftModalProps {
   isOpen: boolean;
@@ -22,6 +22,7 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
   const [breakDuration, setBreakDuration] = useState<number>(0);
   const [shiftType, setShiftType] = useState<'half' | 'full'>('full');
   const [hourlyRate, setHourlyRate] = useState<number>(10);
+  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
 
   useEffect(() => {
     if (editingShift) {
@@ -30,6 +31,7 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
       setBreakDuration(editingShift.breakDuration || 0);
       setShiftType(editingShift.shiftType || 'full');
       setHourlyRate(editingShift.hourlyRate || 10);
+      setSelectedActivities(editingShift.activities || []);
 
       if (editingShift.startTime) {
         const start = new Date(editingShift.startTime);
@@ -48,10 +50,19 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
       setBreakDuration(0);
       setShiftType('full');
       setHourlyRate(10);
+      setSelectedActivities([]);
     }
   }, [editingShift, isOpen]);
 
   if (!isOpen) return null;
+
+  const toggleActivity = (activity: string) => {
+    setSelectedActivities((prev) =>
+      prev.includes(activity)
+        ? prev.filter((a) => a !== activity)
+        : [...prev, activity]
+    );
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +97,7 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
       breakDuration,
       shiftType: jobType === 'weekly_fixed' ? shiftType : undefined,
       hourlyRate: jobType === 'monthly_hourly' ? hourlyRate : undefined,
+      activities: jobType === 'monthly_hourly' ? selectedActivities : undefined,
       totalEarnings: Math.round(earnings * 100) / 100,
     };
 
@@ -200,14 +212,39 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
               </div>
             </div>
           ) : (
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Paga Oraria (€/h)</label>
-              <input
-                type="number"
-                value={hourlyRate}
-                onChange={(e) => setHourlyRate(Number(e.target.value))}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Paga Oraria (€/h)</label>
+                <input
+                  type="number"
+                  value={hourlyRate}
+                  onChange={(e) => setHourlyRate(Number(e.target.value))}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Attività svolte</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {KITCHEN_ACTIVITIES.map((act) => {
+                    const isSelected = selectedActivities.includes(act);
+                    return (
+                      <button
+                        key={act}
+                        type="button"
+                        onClick={() => toggleActivity(act)}
+                        className={`text-xs px-2.5 py-1 rounded-xl border transition-colors font-medium ${
+                          isSelected
+                            ? 'bg-cyan-600 border-cyan-500 text-white shadow'
+                            : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        {isSelected ? '✓ ' : ''}{act}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
 

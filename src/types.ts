@@ -2,6 +2,16 @@
 
 export type JobType = 'weekly_fixed' | 'monthly_hourly';
 
+export const KITCHEN_ACTIVITIES = [
+  'Lavaggio',
+  'Produzione',
+  'Matrimonio',
+  'Evento',
+  'Aiuto generale',
+] as const;
+
+export type KitchenActivity = (typeof KITCHEN_ACTIVITIES)[number];
+
 export interface Shift {
   id: string;
   jobType: JobType;
@@ -13,8 +23,9 @@ export interface Shift {
   // Specifico per Lavoro A (A forfait)
   shiftType?: 'half' | 'full'; // 'half' = 50€, 'full' = 70€
   
-  // Specifico per Lavoro B (Orario)
+  // Specifico per Chiama Cucina (Orario)
   hourlyRate?: number;   // default 10€/h
+  activities?: string[]; // Attività svolte (es. Lavaggio, Produzione, ecc.)
   
   totalEarnings: number;
 }

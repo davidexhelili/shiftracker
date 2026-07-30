@@ -1,6 +1,5 @@
-// src/components/ClockIn.tsx
 import React, { useState, useEffect } from 'react';
-import type { JobType, Shift } from '../types';
+import { KITCHEN_ACTIVITIES, type JobType, type Shift } from '../types';
 
 interface ClockInProps {
   onSaveShift: (shift: Shift) => void;
@@ -16,8 +15,16 @@ export const ClockIn: React.FC<ClockInProps> = ({
   const [selectedJob, setSelectedJob] = useState<JobType>('weekly_fixed');
   const [shiftType, setShiftType] = useState<'half' | 'full'>('full');
   const [hourlyRate, setHourlyRate] = useState<number>(10);
+  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   const [breakDuration, setBreakDuration] = useState<number>(0);
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
+
+  // Sincronizza le attività dal turno attivo se presente
+  useEffect(() => {
+    if (activeShift && activeShift.jobType === 'monthly_hourly') {
+      setSelectedActivities(activeShift.activities || []);
+    }
+  }, [activeShift]);
 
   // Timer per il turno attivo
   useEffect(() => {
@@ -34,6 +41,23 @@ export const ClockIn: React.FC<ClockInProps> = ({
     return () => clearInterval(interval);
   }, [activeShift]);
 
+  const toggleActivity = (activity: string) => {
+    setSelectedActivities((prev) => {
+      const next = prev.includes(activity)
+        ? prev.filter((a) => a !== activity)
+        : [...prev, activity];
+      
+      // Se c'è un turno attivo, aggiornalo direttamente nello stato
+      if (activeShift && activeShift.jobType === 'monthly_hourly') {
+        setActiveShift({
+          ...activeShift,
+          activities: next,
+        });
+      }
+      return next;
+    });
+  };
+
   // Avvio Turno
   const handleStart = () => {
     const newShift: Shift = {
@@ -44,6 +68,7 @@ export const ClockIn: React.FC<ClockInProps> = ({
       breakDuration: 0,
       shiftType: selectedJob === 'weekly_fixed' ? shiftType : undefined,
       hourlyRate: selectedJob === 'monthly_hourly' ? hourlyRate : undefined,
+      activities: selectedJob === 'monthly_hourly' ? selectedActivities : undefined,
       totalEarnings: 0,
     };
     setActiveShift(newShift);
@@ -72,12 +97,14 @@ export const ClockIn: React.FC<ClockInProps> = ({
       ...activeShift,
       endTime,
       breakDuration,
+      activities: activeShift.jobType === 'monthly_hourly' ? selectedActivities : undefined,
       totalEarnings: Math.round(earnings * 100) / 100,
     };
 
     onSaveShift(completedShift);
     setActiveShift(null);
     setBreakDuration(0);
+    setSelectedActivities([]);
   };
 
   // Formattatore per il timer HH:MM:SS
@@ -139,14 +166,40 @@ export const ClockIn: React.FC<ClockInProps> = ({
               </div>
             </div>
           ) : (
-            <div>
-              <label className="block text-sm font-medium mb-1 text-slate-300">Paga Oraria (€/h)</label>
-              <input
-                type="number"
-                value={hourlyRate}
-                onChange={(e) => setHourlyRate(Number(e.target.value))}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium mb-1 text-slate-300">Paga Oraria (€/h)</label>
+                <input
+                  type="number"
+                  value={hourlyRate}
+                  onChange={(e) => setHourlyRate(Number(e.target.value))}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              {/* Attività svolte */}
+              <div>
+                <label className="block text-sm font-medium mb-1 text-slate-300">Attività svolte</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {KITCHEN_ACTIVITIES.map((act) => {
+                    const isSelected = selectedActivities.includes(act);
+                    return (
+                      <button
+                        key={act}
+                        type="button"
+                        onClick={() => toggleActivity(act)}
+                        className={`text-xs px-3 py-1.5 rounded-xl border transition-colors font-medium ${
+                          isSelected
+                            ? 'bg-cyan-600 border-cyan-500 text-white shadow'
+                            : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        {isSelected ? '✓ ' : ''}{act}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
 
@@ -164,10 +217,36 @@ export const ClockIn: React.FC<ClockInProps> = ({
             {formatTime(elapsedSeconds)}
           </div>
 
-          <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-700 text-sm text-slate-300">
+          <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-700 text-sm text-slate-300 space-y-1">
             <p>Modalità: <span className="font-semibold text-white">{activeShift.jobType === 'weekly_fixed' ? 'LOFT' : 'Chiama Cucina'}</span></p>
             {activeShift.shiftType && <p>Servizio: <span className="font-semibold text-white">{activeShift.shiftType === 'half' ? 'Mezzo (50€)' : 'Pieno (70€)'}</span></p>}
           </div>
+
+          {/* Selezione attività durante turno se Chiama Cucina */}
+          {activeShift.jobType === 'monthly_hourly' && (
+            <div className="text-left">
+              <label className="block text-sm font-medium mb-1 text-slate-300">Attività svolte</label>
+              <div className="flex flex-wrap gap-1.5">
+                {KITCHEN_ACTIVITIES.map((act) => {
+                  const isSelected = selectedActivities.includes(act);
+                  return (
+                    <button
+                      key={act}
+                      type="button"
+                      onClick={() => toggleActivity(act)}
+                      className={`text-xs px-3 py-1.5 rounded-xl border transition-colors font-medium ${
+                        isSelected
+                          ? 'bg-cyan-600 border-cyan-500 text-white shadow'
+                          : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {isSelected ? '✓ ' : ''}{act}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Pausa */}
           <div className="text-left">

@@ -264,6 +264,18 @@ export function App() {
                     <span className="text-xs text-slate-400">
                       {shift.date} {shift.breakDuration ? `• Pausa: ${shift.breakDuration}m` : ''}
                     </span>
+                    {shift.activities && shift.activities.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {shift.activities.map((act) => (
+                          <span
+                            key={act}
+                            className="text-[10px] bg-cyan-950/80 text-cyan-300 border border-cyan-800/50 px-1.5 py-0.5 rounded-md font-medium"
+                          >
+                            {act}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-3">
