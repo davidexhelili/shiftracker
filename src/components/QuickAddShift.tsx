@@ -150,25 +150,25 @@ export const QuickAddShift: React.FC<QuickAddShiftProps> = ({ onSaveShift }) => 
         </div>
 
         {/* Orari Inizio e Fine */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
+        <div className="grid grid-cols-2 gap-3 min-w-0">
+          <div className="min-w-0">
             <label className="block text-xs font-semibold text-slate-300 mb-1">Ora Inizio</label>
             <input
               type="time"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
               required
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full min-w-0 box-border bg-slate-900 border border-slate-700 rounded-xl px-2 py-2.5 text-sm text-center font-mono text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs font-semibold text-slate-300 mb-1">Ora Fine</label>
             <input
               type="time"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
               required
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full min-w-0 box-border bg-slate-900 border border-slate-700 rounded-xl px-2 py-2.5 text-sm text-center font-mono text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
         </div>
