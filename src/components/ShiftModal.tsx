@@ -20,7 +20,8 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
   const [startTime, setStartTime] = useState<string>('09:00');
   const [endTime, setEndTime] = useState<string>('17:00');
   const [breakDuration, setBreakDuration] = useState<number>(0);
-  const [shiftType, setShiftType] = useState<'half' | 'full'>('full');
+  
+  const [manualShiftType, setManualShiftType] = useState<'half' | 'full' | null>(null);
   const [hourlyRate, setHourlyRate] = useState<number>(10);
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
 
@@ -29,7 +30,7 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
       setJobType(editingShift.jobType);
       setDate(editingShift.date);
       setBreakDuration(editingShift.breakDuration || 0);
-      setShiftType(editingShift.shiftType || 'full');
+      setManualShiftType(editingShift.shiftType || null);
       setHourlyRate(editingShift.hourlyRate || 10);
       setSelectedActivities(editingShift.activities || []);
 
@@ -48,13 +49,29 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
       setStartTime('09:00');
       setEndTime('17:00');
       setBreakDuration(0);
-      setShiftType('full');
+      setManualShiftType(null);
       setHourlyRate(10);
       setSelectedActivities([]);
     }
   }, [editingShift, isOpen]);
 
   if (!isOpen) return null;
+
+  // Calcolo ore effettive
+  const getCalculatedHours = (): number => {
+    if (!startTime || !endTime || !date) return 0;
+    const startMs = new Date(`${date}T${startTime}:00`).getTime();
+    let endMs = new Date(`${date}T${endTime}:00`).getTime();
+    if (endMs <= startMs) {
+      endMs += 24 * 60 * 60 * 1000;
+    }
+    const mins = Math.max(0, Math.floor((endMs - startMs) / 60000) - breakDuration);
+    return mins / 60;
+  };
+
+  const calculatedHours = getCalculatedHours();
+  const autoShiftType: 'half' | 'full' = calculatedHours <= 6.5 ? 'half' : 'full';
+  const effectiveShiftType = manualShiftType || autoShiftType;
 
   const toggleActivity = (activity: string) => {
     setSelectedActivities((prev) =>
@@ -76,16 +93,11 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
     const startIso = startDateObj.toISOString();
     const endIso = endDateObj.toISOString();
 
-    const startMs = startDateObj.getTime();
-    const endMs = endDateObj.getTime();
-    const totalMinutes = Math.max(0, Math.floor((endMs - startMs) / 60000) - breakDuration);
-    const totalHours = totalMinutes / 60;
-
     let earnings = 0;
     if (jobType === 'weekly_fixed') {
-      earnings = shiftType === 'half' ? 50 : 70;
+      earnings = effectiveShiftType === 'half' ? 50 : 70;
     } else {
-      earnings = totalHours * hourlyRate;
+      earnings = calculatedHours * hourlyRate;
     }
 
     const savedShift: Shift = {
@@ -95,7 +107,7 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
       startTime: startIso,
       endTime: endIso,
       breakDuration,
-      shiftType: jobType === 'weekly_fixed' ? shiftType : undefined,
+      shiftType: jobType === 'weekly_fixed' ? effectiveShiftType : undefined,
       hourlyRate: jobType === 'monthly_hourly' ? hourlyRate : undefined,
       activities: jobType === 'monthly_hourly' ? selectedActivities : undefined,
       totalEarnings: Math.round(earnings * 100) / 100,
@@ -107,7 +119,7 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-slate-800 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl p-6 text-white space-y-4">
+      <div className="bg-slate-800 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl p-6 text-white space-y-4 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center border-b border-slate-700 pb-3">
           <h3 className="text-lg font-bold text-emerald-400">
             {editingShift ? 'Modifica Turno ✏️' : 'Aggiungi Turno Manuale ➕'}
@@ -126,11 +138,14 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
             <label className="block text-xs font-semibold text-slate-300 mb-1">Tipo di Lavoro</label>
             <select
               value={jobType}
-              onChange={(e) => setJobType(e.target.value as JobType)}
+              onChange={(e) => {
+                setJobType(e.target.value as JobType);
+                setManualShiftType(null);
+              }}
               className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
-              <option value="weekly_fixed">LOFT (Reset Settimanale)</option>
-              <option value="monthly_hourly">Chiama Cucina (Reset Mensile)</option>
+              <option value="weekly_fixed">LOFT (Forfait)</option>
+              <option value="monthly_hourly">Chiama Cucina (Orario)</option>
             </select>
           </div>
 
@@ -153,7 +168,10 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
               <input
                 type="time"
                 value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
+                onChange={(e) => {
+                  setStartTime(e.target.value);
+                  setManualShiftType(null);
+                }}
                 required
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
@@ -163,7 +181,10 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
               <input
                 type="time"
                 value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
+                onChange={(e) => {
+                  setEndTime(e.target.value);
+                  setManualShiftType(null);
+                }}
                 required
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
@@ -172,27 +193,42 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
 
           {/* Pausa */}
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Pausa (minuti)</label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-xs font-semibold text-slate-300">Pausa (minuti)</label>
+              <span className="text-xs text-slate-400 font-mono">Ore nette: <strong className="text-emerald-400">{calculatedHours.toFixed(1)}h</strong></span>
+            </div>
             <input
               type="number"
               min="0"
               value={breakDuration}
-              onChange={(e) => setBreakDuration(Number(e.target.value))}
+              onChange={(e) => {
+                setBreakDuration(Number(e.target.value));
+                setManualShiftType(null);
+              }}
               className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
 
           {/* Opzioni specifiche per tipo di lavoro */}
           {jobType === 'weekly_fixed' ? (
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Servizio LOFT</label>
-              <div className="grid grid-cols-2 gap-2">
+            <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-700/80 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-semibold text-slate-300">Servizio Calcolato:</span>
+                <span className={`text-xs px-2 py-0.5 rounded font-bold ${
+                  effectiveShiftType === 'half'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                }`}>
+                  {effectiveShiftType === 'half' ? 'Mezzo Turno (50€)' : 'Turno Pieno (70€)'}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 pt-1">
                 <button
                   type="button"
-                  onClick={() => setShiftType('half')}
-                  className={`p-2.5 rounded-xl border text-sm font-semibold ${
-                    shiftType === 'half'
-                      ? 'bg-emerald-600 border-emerald-500 text-white'
+                  onClick={() => setManualShiftType('half')}
+                  className={`p-2 rounded-xl border text-xs font-semibold ${
+                    effectiveShiftType === 'half'
+                      ? 'bg-amber-600 border-amber-500 text-white'
                       : 'bg-slate-900 border-slate-700 text-slate-400'
                   }`}
                 >
@@ -200,9 +236,9 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShiftType('full')}
-                  className={`p-2.5 rounded-xl border text-sm font-semibold ${
-                    shiftType === 'full'
+                  onClick={() => setManualShiftType('full')}
+                  className={`p-2 rounded-xl border text-xs font-semibold ${
+                    effectiveShiftType === 'full'
                       ? 'bg-emerald-600 border-emerald-500 text-white'
                       : 'bg-slate-900 border-slate-700 text-slate-400'
                   }`}
@@ -212,7 +248,7 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
               </div>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 bg-slate-900/80 p-3 rounded-xl border border-slate-700/80">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">Paga Oraria (€/h)</label>
                 <input

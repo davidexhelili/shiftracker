@@ -1,8 +1,9 @@
 // src/App.tsx
 import { useState, useEffect } from 'react';
-import { ClockIn } from './components/ClockIn';
+import { Navbar, type ActiveTab } from './components/Navbar';
+import { QuickAddShift } from './components/QuickAddShift';
 import { Dashboard } from './components/Dashboard';
-import { ArchiveHistory } from './components/ArchiveHistory';
+import { AllShiftsView } from './components/AllShiftsView';
 import { ShiftModal } from './components/ShiftModal';
 import { SettingsModal } from './components/SettingsModal';
 import { JobShiftsModal } from './components/JobShiftsModal';
@@ -10,8 +11,6 @@ import type { JobType, Shift, ArchivedSummary, EmployerContacts } from './types'
 import {
   getStoredShifts,
   saveShifts,
-  getStoredActiveShift,
-  saveActiveShift,
   getStoredArchived,
   saveArchived,
   getStoredContacts,
@@ -24,7 +23,7 @@ import {
 } from './utils/whatsapp';
 
 export function App() {
-  const [activeShift, setActiveShift] = useState<Shift | null>(null);
+  const [activeTab, setActiveTab] = useState<ActiveTab>('home');
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [archived, setArchived] = useState<ArchivedSummary[]>([]);
   const [contacts, setContacts] = useState<EmployerContacts>({ loftPhone: '', hourlyPhone: '' });
@@ -47,15 +46,12 @@ export function App() {
   useEffect(() => {
     async function loadInitialData() {
       try {
-        const [storedShifts, storedActiveShift, storedArchived, storedContacts] =
-          await Promise.all([
-            getStoredShifts(),
-            getStoredActiveShift(),
-            getStoredArchived(),
-            getStoredContacts(),
-          ]);
+        const [storedShifts, storedArchived, storedContacts] = await Promise.all([
+          getStoredShifts(),
+          getStoredArchived(),
+          getStoredContacts(),
+        ]);
         setShifts(storedShifts);
-        setActiveShift(storedActiveShift);
         setArchived(storedArchived);
         setContacts(storedContacts);
       } catch (error) {
@@ -89,15 +85,7 @@ export function App() {
     sendWhatsappMessage(phone, text);
   };
 
-  // Gestione aggiornamento e salvataggio del turno attivo
-  const handleSetActiveShift = (shift: Shift | null) => {
-    setActiveShift(shift);
-    saveActiveShift(shift).catch((err) =>
-      console.error('Errore durante il salvataggio del turno attivo:', err)
-    );
-  };
-
-  // Salva il turno completato dal ClockIn nello stato e in IndexedDB
+  // Salva un nuovo turno nello stato e in IndexedDB
   const handleSaveShift = (newShift: Shift) => {
     setShifts((prevShifts) => {
       const updated = [newShift, ...prevShifts];
@@ -216,130 +204,136 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 p-4">
-      <header className="max-w-md mx-auto my-4 flex justify-between items-center">
+    <div className="min-h-screen bg-slate-900 text-slate-100 p-4 pb-20">
+      {/* Header */}
+      <header className="max-w-md mx-auto my-3 flex justify-between items-center bg-slate-800/80 p-4 rounded-2xl border border-slate-700 backdrop-blur">
         <div>
-          <h1 className="text-3xl font-extrabold text-emerald-400">Shift Tracker</h1>
-          <p className="text-slate-400 text-sm mt-0.5">Gestione Turni & Guadagni</p>
+          <h1 className="text-2xl font-extrabold text-emerald-400 tracking-tight">Shift Tracker</h1>
+          <p className="text-slate-400 text-xs mt-0.5">
+            {activeTab === 'home' && '🏠 Inserimento Rapido Turni'}
+            {activeTab === 'earnings' && '💰 Guadagni & Resoconti'}
+            {activeTab === 'history' && '📋 Turni Registrati & Archivi'}
+          </p>
         </div>
         <button
           onClick={() => setIsSettingsOpen(true)}
-          className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700 shadow-md transition-colors"
+          className="p-2.5 bg-slate-900 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700 shadow transition-colors"
           title="Impostazioni WhatsApp"
         >
           ⚙️
         </button>
       </header>
 
-      <main className="max-w-md mx-auto space-y-6">
-        {/* Dashboard Statistiche */}
-        <Dashboard
-          shifts={shifts}
-          onArchiveJob={handleArchiveJob}
-          onSendWhatsapp={handleSendWhatsappCurrent}
-          onOpenJobShifts={handleOpenJobShifts}
-        />
+      {/* Contenuto in base al Tab Selezionato */}
+      <main className="max-w-md mx-auto">
+        {activeTab === 'home' && (
+          <div className="space-y-5">
+            {/* Form Inserimento Rapido */}
+            <QuickAddShift onSaveShift={handleSaveShift} />
 
-        {/* Componente ClockIn */}
-        <ClockIn
-          onSaveShift={handleSaveShift}
-          activeShift={activeShift}
-          setActiveShift={handleSetActiveShift}
-        />
-
-        {/* Pulsante Inserimento Manuale */}
-        <div className="text-center">
-          <button
-            onClick={handleOpenNewModal}
-            className="w-full bg-slate-800 hover:bg-slate-700 text-emerald-400 font-semibold py-3 px-4 rounded-xl border border-slate-700 shadow-md transition-colors flex items-center justify-center gap-2 text-sm"
-          >
-            <span>➕ Aggiungi Turno Manuale</span>
-          </button>
-        </div>
-
-        {/* Lista degli ultimi 3 turni registrati */}
-        {shifts.length > 0 && (
-          <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 shadow-lg">
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="font-bold text-base text-slate-200">Ultimi Turni Registrati</h3>
-              <button
-                onClick={() => handleOpenJobShifts()}
-                className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold transition-colors"
-              >
-                Vedi Tutti ➔
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              {shifts.slice(0, 3).map((shift) => (
-                <div
-                  key={shift.id}
-                  className="bg-slate-900 p-3 rounded-xl flex justify-between items-center text-sm border border-slate-700/50"
-                >
-                  <div>
-                    <span className="font-semibold block text-white">
-                      {shift.jobType === 'weekly_fixed' ? 'LOFT' : 'Chiama Cucina'}
-                    </span>
-                    <span className="text-xs text-slate-400">
-                      {shift.date} {shift.breakDuration ? `• Pausa: ${shift.breakDuration}m` : ''}
-                    </span>
-                    {shift.activities && shift.activities.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {shift.activities.map((act) => (
-                          <span
-                            key={act}
-                            className="text-[10px] bg-cyan-950/80 text-cyan-300 border border-cyan-800/50 px-1.5 py-0.5 rounded-md font-medium"
-                          >
-                            {act}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-emerald-400 text-base">
-                      {shift.totalEarnings.toFixed(2)} €
-                    </span>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => handleEditShift(shift)}
-                        className="p-1 text-slate-400 hover:text-white transition-colors"
-                        title="Modifica turno"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        onClick={() => handleDeleteShift(shift.id)}
-                        className="p-1 text-slate-400 hover:text-rose-400 transition-colors"
-                        title="Elimina turno"
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  </div>
+            {/* Ultimi Turni Aggiunti (Anteprima) */}
+            {shifts.length > 0 && (
+              <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 shadow-lg space-y-3">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-bold text-sm text-slate-200">Ultimi Turni Registrati</h3>
+                  <button
+                    onClick={() => setActiveTab('history')}
+                    className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold transition-colors flex items-center gap-1"
+                  >
+                    Vedi Tutti ({shifts.length}) ➔
+                  </button>
                 </div>
-              ))}
-            </div>
 
-            {shifts.length > 3 && (
-              <button
-                onClick={() => handleOpenJobShifts()}
-                className="w-full mt-3 py-2 bg-slate-900 hover:bg-slate-700/60 border border-slate-700 text-xs font-semibold text-emerald-400 rounded-xl transition-colors text-center"
-              >
-                Vedi Tutti i Turni ({shifts.length}) 📋
-              </button>
+                <div className="space-y-2">
+                  {shifts.slice(0, 3).map((shift) => (
+                    <div
+                      key={shift.id}
+                      className="bg-slate-900 p-3 rounded-xl flex justify-between items-center text-xs border border-slate-700/50"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white">
+                            {shift.jobType === 'weekly_fixed' ? 'LOFT' : 'Chiama Cucina'}
+                          </span>
+                          <span className="text-slate-400">{shift.date}</span>
+                        </div>
+                        {shift.shiftType && (
+                          <span className="text-[11px] text-emerald-300 font-medium block">
+                            {shift.shiftType === 'half' ? 'Mezzo Turno (50€)' : 'Turno Pieno (70€)'}
+                          </span>
+                        )}
+                        {shift.activities && shift.activities.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {shift.activities.map((act) => (
+                              <span
+                                key={act}
+                                className="text-[9px] bg-cyan-950/80 text-cyan-300 border border-cyan-800/50 px-1.5 py-0.5 rounded font-medium"
+                              >
+                                {act}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-emerald-400 text-sm">
+                          {shift.totalEarnings.toFixed(2)} €
+                        </span>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleEditShift(shift)}
+                            className="p-1 text-slate-400 hover:text-white transition-colors"
+                            title="Modifica turno"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            onClick={() => handleDeleteShift(shift.id)}
+                            className="p-1 text-slate-400 hover:text-rose-400 transition-colors"
+                            title="Elimina turno"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         )}
 
-        {/* Componente Storico Archivi */}
-        <ArchiveHistory
-          archived={archived}
-          onDeleteArchive={handleDeleteArchive}
-          onSendWhatsappArchived={handleSendWhatsappArchived}
-        />
+        {activeTab === 'earnings' && (
+          <Dashboard
+            shifts={shifts}
+            archived={archived}
+            onArchiveJob={handleArchiveJob}
+            onSendWhatsapp={handleSendWhatsappCurrent}
+            onOpenJobShifts={handleOpenJobShifts}
+          />
+        )}
+
+        {activeTab === 'history' && (
+          <AllShiftsView
+            shifts={shifts}
+            archived={archived}
+            onEditShift={handleEditShift}
+            onDeleteShift={handleDeleteShift}
+            onDeleteArchive={handleDeleteArchive}
+            onSendWhatsappArchived={handleSendWhatsappArchived}
+            onOpenNewModal={handleOpenNewModal}
+          />
+        )}
       </main>
+
+      {/* Navigazione a Schede in Basso */}
+      <Navbar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        shiftsCount={shifts.length}
+      />
 
       {/* Modale Consultazione Turni Divisi per Lavoro */}
       <JobShiftsModal
