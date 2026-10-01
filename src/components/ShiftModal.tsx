@@ -1,6 +1,6 @@
 // src/components/ShiftModal.tsx
 import React, { useState, useEffect } from 'react';
-import { KITCHEN_ACTIVITIES, type JobType, type Shift } from '../types';
+import { KITCHEN_ACTIVITIES, type Shift } from '../types';
 
 interface ShiftModalProps {
   isOpen: boolean;
@@ -15,22 +15,18 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
   onSave,
   editingShift,
 }) => {
-  const [jobType, setJobType] = useState<JobType>('weekly_fixed');
   const [date, setDate] = useState<string>('');
   const [startTime, setStartTime] = useState<string>('09:00');
   const [endTime, setEndTime] = useState<string>('17:00');
   const [breakDuration, setBreakDuration] = useState<number>(0);
-  
-  const [manualShiftType, setManualShiftType] = useState<'half' | 'full' | null>(null);
+
   const [hourlyRate, setHourlyRate] = useState<number>(10);
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
 
   useEffect(() => {
     if (editingShift) {
-      setJobType(editingShift.jobType);
       setDate(editingShift.date);
       setBreakDuration(editingShift.breakDuration || 0);
-      setManualShiftType(editingShift.shiftType || null);
       setHourlyRate(editingShift.hourlyRate || 10);
       setSelectedActivities(editingShift.activities || []);
 
@@ -44,12 +40,10 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
       }
     } else {
       // Default per nuovo turno
-      setJobType('weekly_fixed');
       setDate(new Date().toISOString().split('T')[0]);
       setStartTime('09:00');
       setEndTime('17:00');
       setBreakDuration(0);
-      setManualShiftType(null);
       setHourlyRate(10);
       setSelectedActivities([]);
     }
@@ -70,8 +64,6 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
   };
 
   const calculatedHours = getCalculatedHours();
-  const autoShiftType: 'half' | 'full' = calculatedHours <= 6.5 ? 'half' : 'full';
-  const effectiveShiftType = manualShiftType || autoShiftType;
 
   const toggleActivity = (activity: string) => {
     setSelectedActivities((prev) =>
@@ -93,23 +85,16 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
     const startIso = startDateObj.toISOString();
     const endIso = endDateObj.toISOString();
 
-    let earnings = 0;
-    if (jobType === 'weekly_fixed') {
-      earnings = effectiveShiftType === 'half' ? 50 : 70;
-    } else {
-      earnings = calculatedHours * hourlyRate;
-    }
+    const earnings = calculatedHours * hourlyRate;
 
     const savedShift: Shift = {
       id: editingShift ? editingShift.id : Date.now().toString(),
-      jobType,
       date,
       startTime: startIso,
       endTime: endIso,
       breakDuration,
-      shiftType: jobType === 'weekly_fixed' ? effectiveShiftType : undefined,
-      hourlyRate: jobType === 'monthly_hourly' ? hourlyRate : undefined,
-      activities: jobType === 'monthly_hourly' ? selectedActivities : undefined,
+      hourlyRate,
+      activities: selectedActivities,
       totalEarnings: Math.round(earnings * 100) / 100,
     };
 
@@ -133,22 +118,6 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Tipo di Lavoro */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Tipo di Lavoro</label>
-            <select
-              value={jobType}
-              onChange={(e) => {
-                setJobType(e.target.value as JobType);
-                setManualShiftType(null);
-              }}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            >
-              <option value="weekly_fixed">LOFT (Forfait)</option>
-              <option value="monthly_hourly">Chiama Cucina (Orario)</option>
-            </select>
-          </div>
-
           {/* Data */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1">Data</label>
@@ -168,10 +137,7 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
               <input
                 type="time"
                 value={startTime}
-                onChange={(e) => {
-                  setStartTime(e.target.value);
-                  setManualShiftType(null);
-                }}
+                onChange={(e) => setStartTime(e.target.value)}
                 required
                 className="w-full min-w-0 box-border bg-slate-900 border border-slate-700 rounded-xl px-2 py-2.5 text-sm text-center font-mono text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
@@ -181,10 +147,7 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
               <input
                 type="time"
                 value={endTime}
-                onChange={(e) => {
-                  setEndTime(e.target.value);
-                  setManualShiftType(null);
-                }}
+                onChange={(e) => setEndTime(e.target.value)}
                 required
                 className="w-full min-w-0 box-border bg-slate-900 border border-slate-700 rounded-xl px-2 py-2.5 text-sm text-center font-mono text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
@@ -201,88 +164,46 @@ export const ShiftModal: React.FC<ShiftModalProps> = ({
               type="number"
               min="0"
               value={breakDuration}
-              onChange={(e) => {
-                setBreakDuration(Number(e.target.value));
-                setManualShiftType(null);
-              }}
+              onChange={(e) => setBreakDuration(Number(e.target.value))}
               className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
 
-          {/* Opzioni specifiche per tipo di lavoro */}
-          {jobType === 'weekly_fixed' ? (
-            <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-700/80 space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-semibold text-slate-300">Servizio Calcolato:</span>
-                <span className={`text-xs px-2 py-0.5 rounded font-bold ${
-                  effectiveShiftType === 'half'
-                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                    : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                }`}>
-                  {effectiveShiftType === 'half' ? 'Mezzo Turno (50€)' : 'Turno Pieno (70€)'}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setManualShiftType('half')}
-                  className={`p-2 rounded-xl border text-xs font-semibold ${
-                    effectiveShiftType === 'half'
-                      ? 'bg-amber-600 border-amber-500 text-white'
-                      : 'bg-slate-900 border-slate-700 text-slate-400'
-                  }`}
-                >
-                  Mezzo (50€)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setManualShiftType('full')}
-                  className={`p-2 rounded-xl border text-xs font-semibold ${
-                    effectiveShiftType === 'full'
-                      ? 'bg-emerald-600 border-emerald-500 text-white'
-                      : 'bg-slate-900 border-slate-700 text-slate-400'
-                  }`}
-                >
-                  Pieno (70€)
-                </button>
-              </div>
+          {/* Opzioni Chiama Cucina */}
+          <div className="space-y-3 bg-slate-900/80 p-3 rounded-xl border border-slate-700/80">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Paga Oraria (€/h)</label>
+              <input
+                type="number"
+                value={hourlyRate}
+                onChange={(e) => setHourlyRate(Number(e.target.value))}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
             </div>
-          ) : (
-            <div className="space-y-3 bg-slate-900/80 p-3 rounded-xl border border-slate-700/80">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Paga Oraria (€/h)</label>
-                <input
-                  type="number"
-                  value={hourlyRate}
-                  onChange={(e) => setHourlyRate(Number(e.target.value))}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Attività svolte</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {KITCHEN_ACTIVITIES.map((act) => {
-                    const isSelected = selectedActivities.includes(act);
-                    return (
-                      <button
-                        key={act}
-                        type="button"
-                        onClick={() => toggleActivity(act)}
-                        className={`text-xs px-2.5 py-1 rounded-xl border transition-colors font-medium ${
-                          isSelected
-                            ? 'bg-cyan-600 border-cyan-500 text-white shadow'
-                            : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
-                        }`}
-                      >
-                        {isSelected ? '✓ ' : ''}{act}
-                      </button>
-                    );
-                  })}
-                </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Attività svolte</label>
+              <div className="flex flex-wrap gap-1.5">
+                {KITCHEN_ACTIVITIES.map((act) => {
+                  const isSelected = selectedActivities.includes(act);
+                  return (
+                    <button
+                      key={act}
+                      type="button"
+                      onClick={() => toggleActivity(act)}
+                      className={`text-xs px-2.5 py-1 rounded-xl border transition-colors font-medium ${
+                        isSelected
+                          ? 'bg-cyan-600 border-cyan-500 text-white shadow'
+                          : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {isSelected ? '✓ ' : ''}{act}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          )}
+          </div>
 
           {/* Azioni */}
           <div className="flex gap-3 pt-2">

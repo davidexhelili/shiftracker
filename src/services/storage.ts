@@ -36,16 +36,15 @@ export const saveArchived = async (archived: ArchivedSummary[]): Promise<void> =
   await set(KEYS.ARCHIVED, archived);
 };
 
-// --- Contatti Datori di Lavoro ---
+// --- Contatti Datore di Lavoro ---
 export const getStoredContacts = async (): Promise<EmployerContacts> => {
   return (
     (await get<EmployerContacts>(KEYS.CONTACTS)) || {
-      loftPhone: '',
-      hourlyPhone: '',
+      phone: '',
     }
   );
 };
 
 export const saveContacts = async (contacts: EmployerContacts): Promise<void> => {
   await set(KEYS.CONTACTS, contacts);
-};
+};

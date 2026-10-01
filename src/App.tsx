@@ -7,7 +7,7 @@ import { AllShiftsView } from './components/AllShiftsView';
 import { ShiftModal } from './components/ShiftModal';
 import { SettingsModal } from './components/SettingsModal';
 import { JobShiftsModal } from './components/JobShiftsModal';
-import type { JobType, Shift, ArchivedSummary, EmployerContacts } from './types';
+import type { Shift, ArchivedSummary, EmployerContacts } from './types';
 import {
   getStoredShifts,
   saveShifts,
@@ -26,7 +26,7 @@ export function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [archived, setArchived] = useState<ArchivedSummary[]>([]);
-  const [contacts, setContacts] = useState<EmployerContacts>({ loftPhone: '', hourlyPhone: '' });
+  const [contacts, setContacts] = useState<EmployerContacts>({ phone: '' });
   const [isLoading, setIsLoading] = useState(true);
 
   // Stato per i modali
@@ -34,11 +34,9 @@ export function App() {
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isJobShiftsOpen, setIsJobShiftsOpen] = useState(false);
-  const [jobShiftsTab, setJobShiftsTab] = useState<JobType>('weekly_fixed');
 
-  // Apertura modale consultazione turni per lavoro
-  const handleOpenJobShifts = (jobType: JobType = 'weekly_fixed') => {
-    setJobShiftsTab(jobType);
+  // Apertura modale consultazione turni
+  const handleOpenJobShifts = () => {
     setIsJobShiftsOpen(true);
   };
 
@@ -72,17 +70,15 @@ export function App() {
   };
 
   // Gestione invio WhatsApp per turni correnti
-  const handleSendWhatsappCurrent = (jobType: JobType) => {
-    const text = formatShiftsForWhatsapp(jobType, shifts);
-    const phone = jobType === 'weekly_fixed' ? contacts.loftPhone : contacts.hourlyPhone;
-    sendWhatsappMessage(phone, text);
+  const handleSendWhatsappCurrent = () => {
+    const text = formatShiftsForWhatsapp(shifts);
+    sendWhatsappMessage(contacts.phone, text);
   };
 
   // Gestione invio WhatsApp per archivio
   const handleSendWhatsappArchived = (item: ArchivedSummary) => {
     const text = formatArchivedSummaryForWhatsapp(item);
-    const phone = item.jobType === 'weekly_fixed' ? contacts.loftPhone : contacts.hourlyPhone;
-    sendWhatsappMessage(phone, text);
+    sendWhatsappMessage(contacts.phone, text);
   };
 
   // Salva un nuovo turno nello stato e in IndexedDB
@@ -139,14 +135,13 @@ export function App() {
     setIsModalOpen(true);
   };
 
-  // Archiviazione e reset dei turni per una specifica tipologia di lavoro
-  const handleArchiveJob = (jobType: JobType, defaultLabel: string) => {
-    const targetShifts = shifts.filter((s) => s.jobType === jobType);
-    if (targetShifts.length === 0) return;
+  // Archiviazione e reset dei turni
+  const handleArchiveJob = (defaultLabel: string) => {
+    if (shifts.length === 0) return;
 
     // Calcolo totale ore ed entrate per l'archivio
-    const totalEarnings = targetShifts.reduce((acc, s) => acc + s.totalEarnings, 0);
-    const totalHours = targetShifts.reduce((acc, s) => {
+    const totalEarnings = shifts.reduce((acc, s) => acc + s.totalEarnings, 0);
+    const totalHours = shifts.reduce((acc, s) => {
       if (!s.endTime) return acc;
       const startMs = new Date(s.startTime).getTime();
       let endMs = new Date(s.endTime).getTime();
@@ -159,18 +154,16 @@ export function App() {
 
     const newArchivedItem: ArchivedSummary = {
       id: Date.now().toString(),
-      jobType,
       periodLabel: defaultLabel,
       archivedAt: new Date().toISOString(),
       totalHours: Math.round(totalHours * 10) / 10,
       totalEarnings: Math.round(totalEarnings * 100) / 100,
-      shiftsCount: targetShifts.length,
+      shiftsCount: shifts.length,
     };
 
-    // Filtra mantenendo solo i turni dell'altro lavoro
-    const remainingShifts = shifts.filter((s) => s.jobType !== jobType);
-    setShifts(remainingShifts);
-    saveShifts(remainingShifts).catch((err) =>
+    // Reset tutti i turni
+    setShifts([]);
+    saveShifts([]).catch((err) =>
       console.error('Errore salvataggio turni rimanenti:', err)
     );
 
@@ -253,15 +246,10 @@ export function App() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-white">
-                            {shift.jobType === 'weekly_fixed' ? 'LOFT' : 'Chiama Cucina'}
+                            Chiama Cucina
                           </span>
                           <span className="text-slate-400">{shift.date}</span>
                         </div>
-                        {shift.shiftType && (
-                          <span className="text-[11px] text-emerald-300 font-medium block">
-                            {shift.shiftType === 'half' ? 'Mezzo Turno (50€)' : 'Turno Pieno (70€)'}
-                          </span>
-                        )}
                         {shift.activities && shift.activities.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1">
                             {shift.activities.map((act) => (
@@ -335,12 +323,11 @@ export function App() {
         shiftsCount={shifts.length}
       />
 
-      {/* Modale Consultazione Turni Divisi per Lavoro */}
+      {/* Modale Consultazione Turni */}
       <JobShiftsModal
         isOpen={isJobShiftsOpen}
         onClose={() => setIsJobShiftsOpen(false)}
         shifts={shifts}
-        initialJobType={jobShiftsTab}
         onEditShift={handleEditShift}
         onDeleteShift={handleDeleteShift}
       />

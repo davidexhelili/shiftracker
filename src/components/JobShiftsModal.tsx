@@ -1,12 +1,11 @@
 // src/components/JobShiftsModal.tsx
-import React, { useState, useEffect } from 'react';
-import type { JobType, Shift } from '../types';
+import React from 'react';
+import type { Shift } from '../types';
 
 interface JobShiftsModalProps {
   isOpen: boolean;
   onClose: () => void;
   shifts: Shift[];
-  initialJobType?: JobType;
   onEditShift: (shift: Shift) => void;
   onDeleteShift: (id: string) => void;
 }
@@ -15,24 +14,13 @@ export const JobShiftsModal: React.FC<JobShiftsModalProps> = ({
   isOpen,
   onClose,
   shifts,
-  initialJobType = 'weekly_fixed',
   onEditShift,
   onDeleteShift,
 }) => {
-  const [activeTab, setActiveTab] = useState<JobType>(initialJobType);
-
-  useEffect(() => {
-    if (initialJobType) {
-      setActiveTab(initialJobType);
-    }
-  }, [initialJobType, isOpen]);
-
   if (!isOpen) return null;
 
-  const jobShifts = shifts.filter((s) => s.jobType === activeTab);
-
-  const totalEarnings = jobShifts.reduce((acc, s) => acc + s.totalEarnings, 0);
-  const totalHours = jobShifts.reduce((acc, s) => {
+  const totalEarnings = shifts.reduce((acc, s) => acc + s.totalEarnings, 0);
+  const totalHours = shifts.reduce((acc, s) => {
     if (!s.endTime) return acc;
     const startMs = new Date(s.startTime).getTime();
     let endMs = new Date(s.endTime).getTime();
@@ -67,44 +55,21 @@ export const JobShiftsModal: React.FC<JobShiftsModalProps> = ({
           </button>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="grid grid-cols-2 gap-2 my-4">
-          <button
-            onClick={() => setActiveTab('weekly_fixed')}
-            className={`p-2.5 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${
-              activeTab === 'weekly_fixed'
-                ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg'
-                : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
-            }`}
-          >
-            <span>🍸 LOFT</span>
+        {/* Job Label */}
+        <div className="my-4">
+          <span className="text-sm font-bold px-3 py-1.5 rounded-xl bg-cyan-600 border border-cyan-500 text-white shadow-lg inline-flex items-center gap-1.5">
+            ⏱️ Chiama Cucina
             <span className="text-xs bg-slate-950/40 px-1.5 py-0.5 rounded-full">
-              {shifts.filter((s) => s.jobType === 'weekly_fixed').length}
+              {shifts.length}
             </span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('monthly_hourly')}
-            className={`p-2.5 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${
-              activeTab === 'monthly_hourly'
-                ? 'bg-cyan-600 border-cyan-500 text-white shadow-lg'
-                : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
-            }`}
-          >
-            <span>⏱️ Chiama Cucina</span>
-            <span className="text-xs bg-slate-950/40 px-1.5 py-0.5 rounded-full">
-              {shifts.filter((s) => s.jobType === 'monthly_hourly').length}
-            </span>
-          </button>
+          </span>
         </div>
 
-        {/* Summary Card for selected job */}
+        {/* Summary Card */}
         <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-700/60 mb-3 flex justify-between items-center text-xs">
           <div>
-            <span className="text-slate-400 block">Turni Totali: <span className="font-bold text-white">{jobShifts.length}</span></span>
-            {activeTab === 'monthly_hourly' && (
-              <span className="text-slate-400 block mt-0.5">Ore Totali: <span className="font-bold text-cyan-300">{totalHours.toFixed(1)} h</span></span>
-            )}
+            <span className="text-slate-400 block">Turni Totali: <span className="font-bold text-white">{shifts.length}</span></span>
+            <span className="text-slate-400 block mt-0.5">Ore Totali: <span className="font-bold text-cyan-300">{totalHours.toFixed(1)} h</span></span>
           </div>
           <div className="text-right">
             <span className="text-slate-400 block">Totale Maturato</span>
@@ -114,12 +79,12 @@ export const JobShiftsModal: React.FC<JobShiftsModalProps> = ({
 
         {/* List of shifts */}
         <div className="overflow-y-auto space-y-2.5 pr-1 flex-1">
-          {jobShifts.length === 0 ? (
+          {shifts.length === 0 ? (
             <div className="text-center py-8 text-slate-400 text-sm">
-              Nessun turno registrato per {activeTab === 'weekly_fixed' ? 'LOFT' : 'Chiama Cucina'}.
+              Nessun turno registrato per Chiama Cucina.
             </div>
           ) : (
-            jobShifts.map((shift) => (
+            shifts.map((shift) => (
               <div
                 key={shift.id}
                 className="bg-slate-900 border border-slate-700/60 p-3 rounded-xl flex justify-between items-center text-sm"
@@ -131,12 +96,6 @@ export const JobShiftsModal: React.FC<JobShiftsModalProps> = ({
                       {formatTimeRange(shift)}
                     </span>
                   </div>
-
-                  {activeTab === 'weekly_fixed' && (
-                    <div className="text-xs text-emerald-300 font-medium">
-                      {shift.shiftType === 'half' ? 'Mezzo Turno (50€)' : 'Turno Pieno (70€)'}
-                    </div>
-                  )}
 
                   <div className="text-xs text-slate-400">
                     {shift.breakDuration > 0 && <span>Pausa: {shift.breakDuration}m </span>}

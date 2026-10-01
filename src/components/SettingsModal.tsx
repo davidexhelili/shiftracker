@@ -15,19 +15,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   contacts,
   onSaveContacts,
 }) => {
-  const [loftPhone, setLoftPhone] = useState(contacts.loftPhone || '');
-  const [hourlyPhone, setHourlyPhone] = useState(contacts.hourlyPhone || '');
+  const [phone, setPhone] = useState(contacts.phone || '');
 
   useEffect(() => {
-    setLoftPhone(contacts.loftPhone || '');
-    setHourlyPhone(contacts.hourlyPhone || '');
+    setPhone(contacts.phone || '');
   }, [contacts, isOpen]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSaveContacts({ loftPhone, hourlyPhone });
+    onSaveContacts({ phone });
     onClose();
   };
 
@@ -48,33 +46,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <p className="text-xs text-slate-300">
-            Inserisci i numeri di telefono dei datori di lavoro (es. <span className="font-mono text-emerald-400">393401234567</span>) per inviare direttamente i resoconti su WhatsApp.
+            Inserisci il numero di telefono del datore di lavoro (es. <span className="font-mono text-emerald-400">393401234567</span>) per inviare direttamente i resoconti su WhatsApp.
           </p>
-
-          {/* Numero Datore LOFT */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
-              Datore di lavoro LOFT 🍸
-            </label>
-            <input
-              type="tel"
-              placeholder="+39 340 0000000"
-              value={loftPhone}
-              onChange={(e) => setLoftPhone(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-          </div>
 
           {/* Numero Datore Chiama Cucina */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1">
-              Datore Chiama Cucina (10€/h) ⏱️
+              Datore Chiama Cucina ⏱️
             </label>
             <input
               type="tel"
               placeholder="+39 340 0000000"
-              value={hourlyPhone}
-              onChange={(e) => setHourlyPhone(e.target.value)}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
               className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>

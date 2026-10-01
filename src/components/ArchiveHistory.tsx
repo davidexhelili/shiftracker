@@ -24,7 +24,7 @@ export const ArchiveHistory: React.FC<ArchiveHistoryProps> = ({
 
       {archived.length === 0 ? (
         <div className="text-center py-4 text-xs text-slate-400 border border-dashed border-slate-700/80 rounded-xl p-3">
-          Nessun periodo archiviato al momento. Quando esegui un <strong>Reset Settimanale</strong> o <strong>Reset Mensile</strong>, i resoconti completi compaiono qui.
+          Nessun periodo archiviato al momento. Quando esegui un <strong>Reset Mensile</strong>, i resoconti completi compaiono qui.
         </div>
       ) : (
         <div className="space-y-3">
@@ -36,14 +36,8 @@ export const ArchiveHistory: React.FC<ArchiveHistoryProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-white">{item.periodLabel}</span>
-                <span
-                  className={`text-[10px] uppercase px-1.5 py-0.5 rounded font-bold ${
-                    item.jobType === 'weekly_fixed'
-                      ? 'bg-emerald-500/20 text-emerald-300'
-                      : 'bg-cyan-500/20 text-cyan-300'
-                  }`}
-                >
-                  {item.jobType === 'weekly_fixed' ? 'LOFT' : 'Chiama Cucina'}
+                <span className="text-[10px] uppercase px-1.5 py-0.5 rounded font-bold bg-cyan-500/20 text-cyan-300">
+                  Chiama Cucina
                 </span>
               </div>
               <div className="text-xs text-slate-400 mt-1 space-x-2">
@@ -86,4 +80,3 @@ export const ArchiveHistory: React.FC<ArchiveHistoryProps> = ({
     </div>
   );
 };
-
